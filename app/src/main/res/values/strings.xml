@@ -1,0 +1,22 @@
+<resources>
+
+    <string name="app_name">Seismic Cardiograph</string>
+
+    <string name="bt_activity_main_recordText">Record</string>
+    <string name="bt_activity_main_recordText_alternate">Stop</string>
+
+    <string name="tv_main_graph_x">X</string>
+    <string name="tv_main_graph_Y">Y</string>
+    <string name="tv_main_graph_Z">Z</string>
+    <string name="tv_main_graph_SCG">SCG</string>
+
+    <string name="tv_save_name">Name</string>
+    <string name="tv_save_description">Notes/Description</string>
+    <string name="bt_save_save">Save</string>
+    <string name="et_save_hint_name">Jane, Monday Morning, Excersize</string>
+    <string name="et_save_hint_description">Right after run, Just woke up</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+</resources>
