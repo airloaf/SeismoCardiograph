@@ -1,0 +1,2 @@
+# Seismocardiograph
+Android Seismocardiograph project
