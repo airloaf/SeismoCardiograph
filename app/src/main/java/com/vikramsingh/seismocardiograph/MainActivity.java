@@ -32,6 +32,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 
+/*
+
+    Key Methods:
+        onSensorChanged
+            Shows how the accelerometer data is handled
+
+        onCreate
+            Shows how the graphs and accelerometer are initialized
+
+ */
+
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     //Graphs and Series
@@ -94,6 +105,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     //Filter class
     private Filter filter;
 
+    /*
+    Used for requesting the permissions from the user
+     */
     public void onRequestPermissionsResult(int resultCode, @NonNull String permissions[], @NonNull int[] grantResults){
 
         switch(resultCode){
@@ -108,6 +122,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    /*
+
+    Handles initialization of accelerometers and graphs
+
+    You should keep a reference to the accelerometer for
+    registering and unregistering it.
+
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -142,13 +164,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //Request permissions
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
-
             if(!ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)){
-
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 44);
-
             }
-
         }
 
         //Initialize accelerometer
@@ -156,7 +174,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Sensor accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         sm.registerListener(this, accelerometer, 20000);
 
-        //Register onClick Listeners
+        //Register onClick Listeners for the buttons
         findViewById(R.id.bt_main_record).setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
@@ -288,6 +306,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    /*
+    Destroys the graphs when the application is finished
+
+    The accelerometer should also be unregistered
+     */
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -300,6 +323,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    /*
+    Turns on the the accelerometer recording
+
+    This is a bad way of starting the accelerometer.
+    A better way to do this would be to register the accelerometer
+    when you are ready to record, and unregister it when you are done
+    recording the values
+
+     */
     private void recordPressed(View v){
 
         Button recordBtn = (Button) v;
@@ -354,6 +386,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    /*
+    These methods are for saving and viewing the data
+    Ignore these
+     */
     private void savePressed(){
 
         //Check if some data was even recorded
@@ -407,7 +443,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
     }
-
     private void viewPressed(){
 
         Intent intent = new Intent(this, ViewActivity.class);
@@ -415,18 +450,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    /*
+    These methods change the orientation the phone is currently in
+    Essentially it changes a private field to the orientation we want
+     */
     private void flatPressed(){
         orientation = PhoneOrientation.flat;
     }
-
     private void portraitPressed(){
         orientation = PhoneOrientation.portrait;
     }
-
     private void landscapePressed(){
         orientation = PhoneOrientation.landscape;
     }
 
+    /*
+    Removes all the data from the graphs when we start a new recording
+     */
     private void clearGraphs(){
 
         //Clear the graphs
@@ -460,18 +500,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
+    /*
+    Handles the accelerometer data
+    1. Gets the accelerometer data
+    2. Calculates the da, change in acceleration
+    3. Sends the changes in acceleration to the filter
+    4. Using a simple peak finding algorithm, it checks for
+    peaks in our filtered data
+    5. plots that data in the scg graph
+
+    Look for comments with the numbered steps in them
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
 
         //If recording, plot the data
         if(recording) {
 
-            //Gets values
+            /*
+
+            1. Gets the values of the accelerometer
+
+             */
             float xVal = event.values[0];
             float yVal = event.values[1];
             float zVal = event.values[2];
 
-            //Changes in values;
+            /*
+
+            2. Calculates changes in the acceleration
+
+            prevXValue is the xVal from the previous
+            call of this method. Next time this method
+            is called the this xVal will be the prevXValue.
+            Same for Y and Z.
+
+             */
             float dX = xVal - prevXValue;
             float dY = yVal - prevYValue;
             float dZ = zVal - prevZValue;
@@ -527,30 +591,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 float cutoff = 0.1f;
 
+                // Only records the values for the current phone orientation
                 if(Math.abs(dX) < cutoff || orientation != PhoneOrientation.landscape) {
-
                     dX = 0;
-
                 }else{
                     prevXValue = xVal;
                 }
 
                 if(Math.abs(dY) < cutoff || orientation != PhoneOrientation.portrait) {
-
                     dY = 0;
-
                 }else{
                     prevYValue = yVal;
                 }
 
                 if(Math.abs(dZ) < cutoff || orientation != PhoneOrientation.flat) {
-
                     dZ = 0;
-
                 }else{
                     prevZValue = zVal;
                 }
 
+                /*
+
+                3. Filters the acceleration values
+
+                This filter is a butterworth filter. This wasn't used
+                in the final design of the application. Instead a
+                z-score outlier filter was used
+
+                Filter can be found in com.vikramsingh.seismocardiograph.Filter
+
+                 */
                 double dSum = dX + dY + dZ;
                 BigDecimal dS = filter.getFilteredValue(dSum);
 
@@ -560,9 +630,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 mPeak = rPeak;
                 rPeak = dS.doubleValue();
 
-                //Check if there is a peak
-                if(mPeak > lPeak && mPeak > rPeak && beatDetectTime > beatDetectDelay){
+                /*
 
+                4. Checks if there is a peak in the data
+
+                Essentially checks if a number is greater than its next and previous values
+                This is not a good way to check for peaks, but it was the most basic algorithm
+                I knew
+
+                 */
+                //Checks if there is a peak
+                if(mPeak > lPeak && mPeak > rPeak && beatDetectTime > beatDetectDelay){
 
                     lastPeak = curPeak;
                     curPeak = nextPeak;
@@ -581,6 +659,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 }
 
+                /*
+
+                5. Plots the SCG values and the new acceleration values
+
+                Using the graphview api I add the new data for the X,Y,Z and scg values
+
+                 */
                 //Append the new changes in acceleration
                 seriesX.appendData(new DataPoint(totalTime, dX), false, Integer.MAX_VALUE);
                 seriesY.appendData(new DataPoint(totalTime, dY), false, Integer.MAX_VALUE);
@@ -597,6 +682,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    /*
+    Not used for this app
+     */
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 

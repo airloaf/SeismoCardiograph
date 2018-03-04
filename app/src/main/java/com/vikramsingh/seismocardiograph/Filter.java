@@ -7,12 +7,18 @@ import java.math.BigDecimal;
  *
  * Filter class used to filter data using
  *  a 10th order butterworth filter.
+ *
+ *  This filter is translated from the matlab version
  */
 
 public class Filter {
 
+    // the precision of the filter
     private int precision = 16;
 
+    /*
+    The a and b values for the butterworth filter
+     */
     private BigDecimal[] b = {
             new BigDecimal("0.662015837202617").setScale(precision, BigDecimal.ROUND_HALF_UP),
             new BigDecimal("2.64806334881047").setScale(precision, BigDecimal.ROUND_HALF_UP),
@@ -51,6 +57,9 @@ public class Filter {
 
     }
 
+    /*
+    Returns the filtered value using the butterworth filter algorithm
+     */
     public BigDecimal getFilteredValue(double value){
         //Y[m] = (b[0] * values) + z[0]
         BigDecimal Y = b[0].multiply(new BigDecimal(value)).add(z[0]).setScale(precision, BigDecimal.ROUND_HALF_UP);
